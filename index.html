@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多功能汇率助手</title>
+    <title>Global Currency Hub 3.0</title>
     <style>
         :root {
-            --primary: #4f46e5; /* 靛蓝 */
+            --primary: #4f46e5;
             --primary-hover: #4338ca;
             --bg: #f8fafc;
             --surface: #ffffff;
@@ -16,6 +16,8 @@
             --success: #10b981;
             --danger: #ef4444;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
         }
 
         body {
@@ -43,7 +45,7 @@
         /* 顶部 Header */
         header {
             background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
-            padding: 2rem;
+            padding: var(--spacing-lg);
             text-align: center;
             color: white;
         }
@@ -56,176 +58,113 @@
             display: flex;
             border-bottom: 1px solid var(--border);
         }
-        
         .tab-btn {
-            flex: 1;
-            padding: 1rem;
-            border: none;
-            background: none;
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: all 0.2s;
+            flex: 1; padding: 1rem; border: none; background: none; font-size: 1rem;
+            font-weight: 600; color: var(--text-sub); cursor: pointer; transition: all 0.2s;
             position: relative;
         }
-
-        .tab-btn.active {
-            color: var(--primary);
-        }
-
+        .tab-btn.active { color: var(--primary); }
         .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--primary);
-            border-radius: 3px 3px 0 0;
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%;
+            height: 3px; background-color: var(--primary); border-radius: 3px 3px 0 0;
         }
 
         /* 内容区域 */
-        .content-area {
-            padding: 1.5rem;
-            display: none;
-        }
-        
+        .content-area { padding: var(--spacing-md); display: none; }
         .content-area.active { display: block; }
 
         /* 通用表单样式 */
         .form-group { margin-bottom: 1.25rem; }
-        
         label { 
-            display: block; 
-            margin-bottom: 0.5rem; 
-            font-size: 0.85rem; 
-            font-weight: 600; 
-            color: var(--text-sub); 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; 
+            color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px;
         }
-
         select, input {
-            width: 100%;
-            padding: 0.85rem;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            font-size: 1rem;
-            background-color: #f9fafb;
-            box-sizing: border-box;
-            transition: all 0.2s;
+            width: 100%; padding: 0.85rem; border: 1px solid var(--border);
+            border-radius: 10px; font-size: 1rem; background-color: #f9fafb;
+            box-sizing: border-box; transition: all 0.2s;
         }
-
         select:focus, input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background-color: #fff;
+            outline: none; border-color: var(--primary); background-color: #fff;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
         /* 工具1：汇率差布局 */
-        .currency-row {
-            display: flex;
-            gap: 10px;
+        .currency-row { 
+            display: flex; gap: 10px; margin-bottom: 25px; /* 增加间距 */
         }
         .currency-col { flex: 1; }
 
         .live-rate-card {
-            background-color: #e0e7ff;
-            border: 1px solid #c7d2fe;
-            border-radius: 12px;
-            padding: 1.2rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
+            background-color: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 12px;
+            padding: 1.2rem; text-align: center; margin-bottom: var(--spacing-md);
+            position: relative;
         }
         .live-rate-card .label { font-size: 0.85rem; color: #5c6b7f; margin-bottom: 5px;}
         .live-rate-card .value { font-size: 1.8rem; font-weight: 800; color: var(--primary); font-family: monospace; }
         
+        /* 刷新按钮优化 */
+        .refresh-integrated {
+            position: absolute; top: 10px; right: 10px; background: none; border: none;
+            color: var(--primary); font-size: 1rem; cursor: pointer; opacity: 0.7;
+            padding: 5px; border-radius: 50%; transition: opacity 0.2s;
+        }
+        .refresh-integrated:hover { opacity: 1; background-color: rgba(79, 70, 229, 0.1); }
+        .refresh-integrated:disabled { opacity: 0.4; cursor: not-allowed; }
+
         /* 结果展示 */
         .result-box {
-            background-color: #f8fafc;
-            border-radius: 12px;
-            padding: 1.2rem;
+            background-color: #f8fafc; border-radius: 12px; padding: 1.2rem;
             border: 1px solid var(--border);
         }
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.8rem;
-            font-size: 0.95rem;
-        }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 0.95rem; }
         .final-diff {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px dashed var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 1.1rem;
+            margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: 700; font-size: 1.1rem;
         }
         .txt-green { color: var(--success); }
         .txt-red { color: var(--danger); }
 
         /* 工具2：全币种列表 */
-        .multi-list {
-            display: grid;
-            gap: 1rem;
-        }
+        .multi-list { display: grid; gap: 0.75rem; }
         .multi-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: white;
-            border: 1px solid var(--border);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
+            display: flex; align-items: center; gap: 10px; background: white;
+            border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 12px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            cursor: grab; /* 拖动光标 */
+            transition: transform 0.2s, box-shadow 0.2s;
         }
+        .multi-item:active { cursor: grabbing; box-shadow: 0 6px 10px rgba(0,0,0,0.15); transform: translateY(-2px); }
+        .multi-item.dragging { opacity: 0.5; } /* 拖动时的样式 */
+
+        .drag-handle {
+            font-size: 1.2rem; margin-right: 5px; color: var(--text-sub);
+            cursor: grab; width: 20px; text-align: center;
+        }
+
         .flag-code {
-            display: flex;
-            flex-direction: column;
-            width: 50px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: var(--primary);
+            display: flex; flex-direction: column; width: 60px; text-align: center;
+            font-weight: 700; font-size: 0.9rem; color: var(--primary);
         }
+        .flag-code .flag { font-size: 1.5rem; line-height: 1; margin-bottom: 2px; }
         .flag-code span { font-size: 0.7rem; color: var(--text-sub); font-weight: normal; }
+
         .multi-input {
-            border: none;
-            background: transparent;
-            text-align: right;
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-main);
+            border: none; background: transparent; text-align: right;
+            font-size: 1.2rem; font-weight: 600; color: var(--text-main);
+            /* 预设值颜色优化 */
+            color: var(--text-main); 
+            width: 100%;
         }
-        .multi-input:focus {
-            box-shadow: none;
-            background: transparent;
-        }
+        .multi-input::placeholder { color: #ccc; }
+        .multi-input:focus { box-shadow: none; background: transparent; }
 
         /* 底部状态栏 */
         .status-bar {
-            padding: 1rem;
-            text-align: center;
-            font-size: 0.8rem;
-            color: var(--text-sub);
-            border-top: 1px solid var(--border);
-            background-color: #f1f5f9;
+            padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-sub);
+            border-top: 1px solid var(--border); background-color: #f1f5f9;
         }
-        .refresh-btn {
-            background: none;
-            border: 1px solid var(--border);
-            padding: 4px 10px;
-            border-radius: 100px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            margin-left: 10px;
-            background-color: white;
-        }
-        .refresh-btn:hover { background-color: #e2e8f0; }
     </style>
 </head>
 <body>
@@ -233,7 +172,7 @@
 <div class="app-container">
     <header>
         <h1>Global Currency Hub</h1>
-        <p>实时汇率计算 & 损益分析</p>
+        <p>实时汇率计算 & 损益分析 (v3.0)</p>
     </header>
 
     <div class="tabs">
@@ -256,8 +195,11 @@
         </div>
 
         <div class="live-rate-card">
-            <div class="label">当前实时汇率</div>
+            <div class="label">当前实时汇率 (1 <span id="calcBaseCode">USD</span> = )</div>
             <div class="value" id="liveRateDisplay">Loading...</div>
+            <button class="refresh-integrated" id="refreshBtn" onclick="initApp(true)" title="刷新数据">
+                <span id="refreshIcon">🔄</span>
+            </button>
         </div>
 
         <div class="form-group">
@@ -288,16 +230,15 @@
 
     <div id="tab-multi" class="content-area">
         <div style="margin-bottom:1rem; font-size:0.9rem; color:#64748b; text-align:center;">
-            在任意输入框输入金额，自动转换其他币种
+            在任意输入框输入金额，自动转换其他币种。拖动左侧按钮可排序。
         </div>
         <div class="multi-list" id="multiListContainer">
             </div>
     </div>
 
     <div class="status-bar">
-        数据来源: ExchangeRate-API
-        <button class="refresh-btn" onclick="initApp()">🔄 刷新数据</button>
-        <div id="lastUpdated" style="margin-top:5px; font-size:0.7rem; opacity:0.7;"></div>
+        数据来源: ExchangeRate-API | 
+        <span id="lastUpdated">获取中...</span>
     </div>
 </div>
 
@@ -305,60 +246,63 @@
     // 🔴 配置区
     const API_KEY = '71986cc4bfb65581bda0e0dd'; 
 
-    // 货币定义
-    const currencies = [
-        { code: 'USD', name: '美元' },
-        { code: 'CNY', name: '人民币' },
-        { code: 'EUR', name: '欧元' },
-        { code: 'JPY', name: '日元' },
-        { code: 'GBP', name: '英镑' },
-        { code: 'AUD', name: '澳元' },
-        { code: 'CAD', name: '加元' },
-        { code: 'CHF', name: '瑞郎' },
-        { code: 'HKD', name: '港币' },
-        { code: 'SGD', name: '新币' }
+    // 货币定义 (已将瑞郎 CHF 替换为纽币 NZD)
+    let currencies = [
+        { code: 'USD', name: '美元', flag: '🇺🇸' },
+        { code: 'CNY', name: '人民币', flag: '🇨🇳' },
+        { code: 'EUR', name: '欧元', flag: '🇪🇺' },
+        { code: 'JPY', name: '日元', flag: '🇯🇵' },
+        { code: 'GBP', name: '英镑', flag: '🇬🇧' },
+        { code: 'AUD', name: '澳元', flag: '🇦🇺' },
+        { code: 'CAD', name: '加元', flag: '🇨🇦' },
+        { code: 'NZD', name: '纽币', flag: '🇳🇿' }, // 替换后的纽币
+        { code: 'HKD', name: '港币', flag: '🇭🇰' },
+        { code: 'SGD', name: '新币', flag: '🇸🇬' }
     ];
-
     // 全局状态
-    let ratesData = {}; // 存储相对于 USD 的汇率
+    let ratesData = {};
     let lastFetchTime = null;
+    let dragSrcEl = null; // 用于拖拽的源元素
 
     // DOM 元素引用
     const baseSel = document.getElementById('baseCurrency');
     const targetSel = document.getElementById('targetCurrency');
     const liveRateDisplay = document.getElementById('liveRateDisplay');
     const multiContainer = document.getElementById('multiListContainer');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const calcBaseCode = document.getElementById('calcBaseCode');
 
     // 1. 初始化
-    async function initApp() {
-        if (API_KEY === 'YOUR_API_KEY_HERE') {
+    async function initApp(isManualRefresh = false) {
+        if (API_KEY === '71986cc4bfb65581bda0e0dd') {
             alert('请在代码中配置 API Key');
             return;
         }
 
-        // 填充下拉菜单
+        // UI 状态：加载中
+        refreshBtn.disabled = true;
+        refreshIcon.style.animation = 'spin 1s linear infinite';
+        document.getElementById('lastUpdated').innerText = isManualRefresh ? '正在刷新...' : '获取中...';
+
+        // 填充下拉菜单 (只在第一次加载时)
         if(baseSel.options.length === 0) {
             populateSelects();
-            renderMultiInputs();
         }
 
-        // 加载动画
-        liveRateDisplay.innerText = "获取中...";
-        liveRateDisplay.style.opacity = 0.5;
-
         try {
-            // 请求基础数据 (基于 USD)
-            // 技巧：我们只需要请求一次 USD 的汇率，其他汇率可以通过数学计算得出
-            // 比如 CNY -> EUR = (1/USDCNY) * USDEUR
             const res = await fetch(`https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`);
             const data = await res.json();
 
             if (data.result === 'success') {
                 ratesData = data.conversion_rates;
                 lastFetchTime = new Date();
-                document.getElementById('lastUpdated').innerText = '更新时间: ' + lastFetchTime.toLocaleTimeString();
+                document.getElementById('lastUpdated').innerText = '数据更新于 ' + lastFetchTime.toLocaleTimeString();
                 
-                // 默认设置
+                // 渲染多币种列表 (包括拖拽功能和初始值)
+                renderMultiInputs();
+                
+                // 更新计算器视图
                 updateCalcLogic(); 
             } else {
                 alert('API 错误: ' + data['error-type']);
@@ -368,9 +312,17 @@
             liveRateDisplay.innerText = "Error";
             alert('网络请求失败');
         } finally {
-            liveRateDisplay.style.opacity = 1;
+            // UI 状态：恢复
+            refreshBtn.disabled = false;
+            refreshIcon.style.animation = 'none';
         }
     }
+
+    // CSS 动画用于刷新按钮
+    const style = document.createElement('style');
+    style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+
 
     // 填充下拉框
     function populateSelects() {
@@ -385,43 +337,109 @@
         targetSel.value = 'CNY';
     }
 
-    // 生成全币种输入列表
+    // 渲染全币种输入列表（包含拖拽）
     function renderMultiInputs() {
         multiContainer.innerHTML = currencies.map(c => `
-            <div class="multi-item">
-                <div class="flag-code">${c.code}<span>${c.name}</span></div>
+            <div class="multi-item" draggable="true" data-currency="${c.code}">
+                <div class="drag-handle" draggable="true" ondragstart="handleDragStart(event)">☰</div>
+                <div class="flag-code">
+                    <span class="flag">${c.flag}</span>
+                    ${c.code}<span>${c.name}</span>
+                </div>
                 <input type="number" 
                        class="multi-input" 
                        data-currency="${c.code}" 
-                       placeholder="0" 
+                       placeholder="0.00" 
                        oninput="onMultiInput(this)">
             </div>
         `).join('');
+
+        // 重新添加拖拽事件监听
+        document.querySelectorAll('.multi-item').forEach(item => {
+            item.addEventListener('dragstart', handleDragStart, false);
+            item.addEventListener('dragenter', handleDragEnter, false);
+            item.addEventListener('dragover', handleDragOver, false);
+            item.addEventListener('dragleave', handleDragLeave, false);
+            item.addEventListener('drop', handleDrop, false);
+            item.addEventListener('dragend', handleDragEnd, false);
+        });
+
+        // 设置初始值 (USD=100)
+        const usdInput = document.querySelector('.multi-input[data-currency="USD"]');
+        if (usdInput) {
+            usdInput.value = '100';
+            onMultiInput(usdInput);
+        }
     }
 
-    // 2. 核心逻辑：获取任意两币种间的汇率 (交叉汇率算法)
+    // 2. 拖拽逻辑 (仅对 multi-list 生效)
+    function handleDragStart(e) {
+        // 确保我们拖动的是整个 currency-item
+        let item = e.target.closest('.multi-item');
+        if (!item) return;
+
+        dragSrcEl = item;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', item.innerHTML);
+
+        // 延迟添加 dragging 类，避免拖动瞬间样式抖动
+        setTimeout(() => item.classList.add('dragging'), 0);
+    }
+    
+    function handleDragOver(e) {
+        e.preventDefault(); 
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragEnter(e) {
+        let item = e.target.closest('.multi-item');
+        if (item && item !== dragSrcEl) {
+            item.classList.add('over');
+        }
+    }
+
+    function handleDragLeave(e) {
+        e.target.closest('.multi-item')?.classList.remove('over');
+    }
+
+    function handleDrop(e) {
+        e.stopPropagation(); // 阻止浏览器默认行为 (如跳转)
+        let dropTarget = e.target.closest('.multi-item');
+
+        if (dragSrcEl !== dropTarget) {
+            const dragCode = dragSrcEl.dataset.currency;
+            const dropCode = dropTarget.dataset.currency;
+
+            // 1. 移动 JS 数组中的元素
+            const dragIndex = currencies.findIndex(c => c.code === dragCode);
+            const dropIndex = currencies.findIndex(c => c.code === dropCode);
+            
+            // 剪切元素
+            const [removed] = currencies.splice(dragIndex, 1);
+            // 插入到新位置
+            currencies.splice(dropIndex, 0, removed);
+
+            // 2. 重新渲染列表以更新 UI
+            renderMultiInputs();
+        }
+    }
+
+    function handleDragEnd(e) {
+        // 清理拖拽状态
+        document.querySelectorAll('.multi-item').forEach(item => {
+            item.classList.remove('dragging');
+            item.classList.remove('over');
+        });
+        dragSrcEl = null;
+    }
+
+
+    // 3. 核心逻辑：获取任意两币种间的汇率 (交叉汇率算法)
     function getCrossRate(from, to) {
-        if (!ratesData[from] || !ratesData[to]) return 0;
-        // 公式： (1 / Rate_From_USD) * Rate_To_USD
-        // 因为 API 给的是 1 USD = X Currency
+        if (!ratesData[from] || !ratesData[to] || Object.keys(ratesData).length === 0) return 0;
         const rateFromUSD = ratesData[from];
         const rateToUSD = ratesData[to];
         return (1 / rateFromUSD) * rateToUSD;
-    }
-
-    // 3. 标签切换
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
-        
-        // 简单的索引映射，实际项目中可以用 ID
-        if(tabName === 'calc') {
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('tab-calc').classList.add('active');
-        } else {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.getElementById('tab-multi').classList.add('active');
-        }
     }
 
     // 4. 功能一逻辑：汇率差计算
@@ -429,6 +447,8 @@
         const from = baseSel.value;
         const to = targetSel.value;
         
+        calcBaseCode.innerText = from; // 更新 1 [XXX] = ...
+
         if (from === to) {
             liveRateDisplay.innerText = "1.0000";
             calculateProfit();
@@ -436,10 +456,10 @@
         }
 
         const rate = getCrossRate(from, to);
-        const digits = (to === 'JPY' || to === 'KRW') ? 4 : 4; // 精度
+        const digits = 4;
         
-        liveRateDisplay.innerText = rate > 0 ? rate.toFixed(digits) : '--';
-        calculateProfit(); // 汇率变了，结果也要变
+        liveRateDisplay.innerText = rate > 0 ? rate.toFixed(digits) : '---';
+        calculateProfit();
     }
 
     function calculateProfit() {
@@ -450,7 +470,7 @@
 
         const resultBox = document.getElementById('calcResultBox');
 
-        if (isNaN(amount) || isNaN(targetRate) || isNaN(currentRate)) {
+        if (isNaN(amount) || isNaN(targetRate) || isNaN(currentRate) || currentRate === 0) {
             resultBox.style.display = 'none';
             return;
         }
@@ -467,16 +487,21 @@
         document.getElementById('resTargetTotal').innerText = `${targetTotal.toFixed(digits)} ${targetCurrency}`;
         
         const diffEl = document.getElementById('resDiff');
-        const sign = diff > 0 ? '+' : '';
-        diffEl.innerText = `${sign}${diff.toFixed(digits)} ${targetCurrency}`;
+        const sign = diff >= 0 ? '+' : '-';
+        
+        // 统一取绝对值，然后手动加符号
+        const absDiff = Math.abs(diff);
 
         diffEl.className = 'final-diff'; // reset
         if(diff > 0) {
             diffEl.classList.add('txt-green');
-            diffEl.innerHTML = `✅ 省下 ${sign}${diff.toFixed(digits)} ${targetCurrency}`;
+            diffEl.innerHTML = `✅ 优于目标 ${sign}${absDiff.toFixed(digits)} ${targetCurrency}`;
         } else if (diff < 0) {
             diffEl.classList.add('txt-red');
-            diffEl.innerHTML = `🔻 亏损 ${sign}${diff.toFixed(digits)} ${targetCurrency}`;
+            diffEl.innerHTML = `🔻 差于目标 ${sign}${absDiff.toFixed(digits)} ${targetCurrency}`;
+        } else {
+             diffEl.classList.add('txt-green');
+             diffEl.innerHTML = `⚖️ 零差额`;
         }
     }
 
@@ -485,33 +510,47 @@
         const sourceVal = parseFloat(sourceInput.value);
         const sourceCode = sourceInput.dataset.currency;
 
-        if (isNaN(sourceVal)) {
-            // 如果清空了输入，把其他也都清空
+        if (isNaN(sourceVal) || sourceVal === 0) {
+            // 清空其他
             document.querySelectorAll('.multi-input').forEach(input => {
                 if(input !== sourceInput) input.value = '';
             });
             return;
         }
 
-        // 算法：先把输入金额转成 USD，再从 USD 转成其他
-        // 1 USD = ratesData[sourceCode] SourceCurrency
-        // So, 1 SourceCurrency = 1 / ratesData[sourceCode] USD
+        // 1. 转换成 USD (基础币)
         const valInUSD = sourceVal / ratesData[sourceCode];
 
+        // 2. 转换成所有其他币种
         document.querySelectorAll('.multi-input').forEach(input => {
-            if (input === sourceInput) return; // 跳过自己
+            if (input === sourceInput) return;
             
             const targetCode = input.dataset.currency;
             const targetRate = ratesData[targetCode];
             const result = valInUSD * targetRate;
             
-            // 格式化：日元/韩元保留0位，其他2位
+            // 格式化
             const digits = (targetCode === 'JPY' || targetCode === 'KRW') ? 0 : 2;
             input.value = result.toFixed(digits);
         });
     }
 
-    // 启动
+    // 切换 Tab
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
+        
+        if(tabName === 'calc') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-calc').classList.add('active');
+            updateCalcLogic(); // 确保汇率是新的
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-multi').classList.add('active');
+        }
+    }
+
+    // 启动应用
     initApp();
 
 </script>
