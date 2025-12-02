@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Currency Hub 3.1</title>
+    <title>Global Currency Hub 3.2</title>
     <style>
         :root {
             --primary: #4f46e5;
@@ -84,6 +84,20 @@
             border-radius: 10px; font-size: 1rem; background-color: #f9fafb;
             box-sizing: border-box; transition: all 0.2s;
         }
+        
+        /* 针对 Select 的优化 V3.2 */
+        select {
+            padding-right: 2.5rem; /* 增加右侧间距 */
+            appearance: none; /* 隐藏原生箭头 */
+            -webkit-appearance: none; 
+            /* 使用自定义 SVG 箭头 (向下的小三角) */
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="292.4" height="292.4" viewBox="0 0 292.4 292.4"><path fill="%2364748b" d="M287 197.8L146.2 57 5.4 197.8z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center; /* 调整箭头位置 */
+            background-size: 10px; /* 调整箭头大小 */
+        }
+        select:hover { cursor: pointer; }
+
         select:focus, input:focus {
             outline: none; border-color: var(--primary); background-color: #fff;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -91,7 +105,7 @@
 
         /* 工具1：汇率差布局 */
         .currency-row { 
-            display: flex; gap: 10px; margin-bottom: 25px; /* 增加间距 */
+            display: flex; gap: 10px; margin-bottom: 25px; 
         }
         .currency-col { flex: 1; }
 
@@ -134,13 +148,17 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             cursor: grab; /* 拖动光标 */
             transition: transform 0.2s, box-shadow 0.2s;
+            touch-action: none; /* 阻止移动端默认的滚动/缩放/长按复制 */
         }
+        /* 拖动反馈 V3.2: 整个条目变色/抬起 */
         .multi-item:active { cursor: grabbing; box-shadow: 0 6px 10px rgba(0,0,0,0.15); transform: translateY(-2px); }
-        .multi-item.dragging { opacity: 0.5; } /* 拖动时的样式 */
+        .multi-item.dragging { opacity: 0.5; } 
 
         .drag-handle {
             font-size: 1.2rem; margin-right: 5px; color: var(--text-sub);
             cursor: grab; width: 20px; text-align: center;
+            /* 确保这个小把手不会干扰拖拽事件，虽然事件现在主要在父元素上 */
+            pointer-events: none; 
         }
 
         .flag-code {
@@ -155,7 +173,7 @@
             font-size: 1.2rem; font-weight: 600; color: var(--text-main);
             width: 100%;
         }
-        /* 占位符颜色调整，让它看起来更像是提示 */
+        /* 占位符颜色调整 V3.2: 统一浅灰色 */
         .multi-input::placeholder { color: #bdbdbd; font-weight: 500;}
         .multi-input:focus { box-shadow: none; background: transparent; }
 
@@ -171,7 +189,7 @@
 <div class="app-container">
     <header>
         <h1>Global Currency Hub</h1>
-        <p>实时汇率计算 & 损益分析 (v3.1)</p>
+        <p>实时汇率计算 & 损益分析 (v3.2)</p>
     </header>
 
     <div class="tabs">
@@ -228,9 +246,6 @@
     </div>
 
     <div id="tab-multi" class="content-area">
-        <div style="margin-bottom:1rem; font-size:0.9rem; color:#64748b; text-align:center;">
-            在任意输入框输入金额，自动转换其他币种。拖动左侧按钮可排序。
-        </div>
         <div class="multi-list" id="multiListContainer">
             </div>
     </div>
@@ -245,7 +260,7 @@
     // 🔴 配置区：已将你的 Key 写入
     const API_KEY = '71986cc4bfb65581bda0e0dd'; 
 
-    // 货币定义 (已将瑞郎 CHF 替换为纽币 NZD)
+    // 货币定义
     let currencies = [
         { code: 'USD', name: '美元', flag: '🇺🇸' },
         { code: 'CNY', name: '人民币', flag: '🇨🇳' },
@@ -274,7 +289,6 @@
 
     // 1. 初始化
     async function initApp(isManualRefresh = false) {
-        // V3.1: 删除了 API_KEY 检查，因为现在 Key 是直接写入的
         
         // UI 状态：加载中
         refreshBtn.disabled = true;
@@ -294,7 +308,7 @@
                 lastFetchTime = new Date();
                 document.getElementById('lastUpdated').innerText = '数据更新于 ' + lastFetchTime.toLocaleTimeString();
                 
-                // 渲染多币种列表 (包括占位符和拖拽功能)
+                // 渲染多币种列表 (包含动态占位符)
                 renderMultiInputs();
                 
                 updateCalcLogic(); 
@@ -329,15 +343,22 @@
         targetSel.value = 'CNY';
     }
 
-    // 渲染全币种输入列表（包含拖拽）
+    // 渲染全币种输入列表（包含拖拽和动态占位符 V3.2）
     function renderMultiInputs() {
+        // 核心：计算 USD=100 对应的所有币种等值，作为占位符
+        const USD_BASE_AMOUNT = 100;
+
         multiContainer.innerHTML = currencies.map(c => {
-             // 仅 USD 使用占位符 '100.00' 作为默认提示
-             const placeholder = c.code === 'USD' ? '100.00' : '0.00';
+             const targetRate = ratesData[c.code];
+             const digits = (c.code === 'JPY' || c.code === 'KRW') ? 0 : 2;
+             
+             // 计算 100 USD 对应的等值
+             const equivalentValue = USD_BASE_AMOUNT * targetRate;
+             const placeholder = equivalentValue.toFixed(digits);
 
             return `
                 <div class="multi-item" draggable="true" data-currency="${c.code}">
-                    <div class="drag-handle" draggable="true" ondragstart="handleDragStart(event)">☰</div>
+                    <div class="drag-handle">☰</div>
                     <div class="flag-code">
                         <span class="flag">${c.flag}</span>
                         ${c.code}<span>${c.name}</span>
@@ -352,7 +373,7 @@
             `;
         }).join('');
 
-        // 重新添加拖拽事件监听
+        // 重新添加拖拽事件监听 (V3.2: 绑定到整个 multi-item)
         document.querySelectorAll('.multi-item').forEach(item => {
             item.addEventListener('dragstart', handleDragStart, false);
             item.addEventListener('dragenter', handleDragEnter, false);
@@ -362,25 +383,19 @@
             item.addEventListener('dragend', handleDragEnd, false);
         });
         
-        // 因为移除了默认值，这里需要模拟输入一次来联动其他币种
-        const usdInput = document.querySelector('.multi-input[data-currency="USD"]');
-        if (usdInput) {
-             // 实际输入值设为 100，然后触发联动，但输入框本身保持空白，只显示 placeholder
-             // 为了联动效果，我们假装输入了 100
-             usdInput.value = '100'; 
-             onMultiInput(usdInput);
-             usdInput.value = ''; // 立即清空，显示占位符
-        }
+        // V3.2 优化: 因为占位符已经显示了初始等值，所以无需再设置实际值和联动
+        // 用户现在可以直接点击输入
     }
 
-    // 2. 拖拽逻辑 (不变)
+    // 2. 拖拽逻辑 (V3.2: 逻辑不变，但现在 dragSrcEl 是整个 item)
     function handleDragStart(e) {
         let item = e.target.closest('.multi-item');
         if (!item) return;
 
         dragSrcEl = item;
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', item.innerHTML);
+        // 在移动设备上，setData 可能有助于触发拖动，虽然不常用
+        e.dataTransfer.setData('text/plain', item.dataset.currency); 
 
         setTimeout(() => item.classList.add('dragging'), 0);
     }
@@ -436,7 +451,7 @@
         return (1 / rateFromUSD) * rateToUSD;
     }
 
-    // 4. 功能一逻辑：汇率差计算
+    // 4. 功能一逻辑：汇率差计算 (不变)
     function updateCalcLogic() {
         const from = baseSel.value;
         const to = targetSel.value;
@@ -503,8 +518,8 @@
         const sourceVal = parseFloat(sourceInput.value);
         const sourceCode = sourceInput.dataset.currency;
 
-        // 如果输入框值为空或 NaN，则不进行联动
-        if (sourceInput.value === '' || isNaN(sourceVal) || sourceVal === 0) {
+        // 占位符已处理了空值/0值问题
+        if (isNaN(sourceVal) || sourceVal === 0) {
              document.querySelectorAll('.multi-input').forEach(input => {
                 if(input !== sourceInput) input.value = '';
             });
@@ -528,7 +543,7 @@
         });
     }
 
-    // 切换 Tab
+    // 切换 Tab (不变)
     function switchTab(tabName) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.content-area').forEach(c => c.classList.remove('active'));
