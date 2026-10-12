@@ -1,0 +1,10 @@
+name = "rate-calculator-rates"
+main = "rates-proxy.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+# 允许调用的网站（逗号分隔）。本地测试可以临时加上 http://localhost:8000
+ALLOWED_ORIGINS = "https://reece-95.github.io"
+
+# API Key 不写在这里，用命令设置成加密变量：
+#   npx wrangler secret put EXCHANGE_RATE_API_KEY
