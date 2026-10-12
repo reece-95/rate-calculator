@@ -1,0 +1,10 @@
+{
+  "name": "getRates",
+  "version": "1.0.0",
+  "description": "获取最新汇率（ExchangeRate-API），结果缓存在云数据库",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "wx-server-sdk": "^3.0.1"
+  }
+}

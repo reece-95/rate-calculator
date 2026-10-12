@@ -1,0 +1,125 @@
+<view class="page">
+    <!-- 更新时间 + 刷新 -->
+    <view class="status {{statusError ? 'is-error' : ''}}">
+        <text class="status-text">{{statusText}}</text>
+        <view class="refresh {{loading ? 'is-loading' : ''}}" bindtap="onRefresh" aria-role="button" aria-label="刷新汇率">
+            <text class="refresh-icon">↻</text>
+        </view>
+    </view>
+
+    <!-- 分段标签：一次只显示一个工具 -->
+    <view class="tabs" aria-role="tablist">
+        <view class="tab {{tab === 'calc' ? 'is-active' : ''}}" data-tab="calc" bindtap="onTab" aria-role="tab" aria-selected="{{tab === 'calc'}}">汇率差计算</view>
+        <view class="tab {{tab === 'multi' ? 'is-active' : ''}}" data-tab="multi" bindtap="onTab" aria-role="tab" aria-selected="{{tab === 'multi'}}">全币种换算</view>
+    </view>
+
+    <!-- 工具 1：汇率差计算 -->
+    <view class="panel" hidden="{{tab !== 'calc'}}">
+        <view class="pair">
+            <view class="picker-field">
+                <text class="label">持有</text>
+                <picker range="{{pickerLabels}}" value="{{baseIndex}}" bindchange="onBaseChange" aria-label="持有币种">
+                    <view class="picker">
+                        <text class="picker-flag">{{base.flag}}</text>
+                        <view class="picker-text">
+                            <text class="picker-code">{{base.code}}</text>
+                            <text class="picker-name">{{base.name}}</text>
+                        </view>
+                        <text class="picker-chevron">▾</text>
+                    </view>
+                </picker>
+            </view>
+
+            <view class="swap {{flipped ? 'is-flipped' : ''}}" bindtap="onSwap" aria-role="button" aria-label="互换持有币种和兑换币种">
+                <text class="swap-icon">⇄</text>
+            </view>
+
+            <view class="picker-field">
+                <text class="label">换成</text>
+                <picker range="{{pickerLabels}}" value="{{targetIndex}}" bindchange="onTargetChange" aria-label="兑换币种">
+                    <view class="picker">
+                        <text class="picker-flag">{{target.flag}}</text>
+                        <view class="picker-text">
+                            <text class="picker-code">{{target.code}}</text>
+                            <text class="picker-name">{{target.name}}</text>
+                        </view>
+                        <text class="picker-chevron">▾</text>
+                    </view>
+                </picker>
+            </view>
+        </view>
+
+        <!-- 当前汇率：钞票式票据 -->
+        <view class="note">
+            <canvas type="2d" id="guilloche" class="guilloche"></canvas>
+            <view class="note-inner">
+                <text class="note-pair">1 {{base.code}} =</text>
+                <view class="note-rate">
+                    <text class="note-value num">{{rateText}}</text>
+                    <text class="note-unit">{{rateText === '—' ? '' : target.code}}</text>
+                </view>
+                <text class="note-inverse num">{{inverseText}}</text>
+            </view>
+        </view>
+
+        <view class="field">
+            <text class="label">兑换金额（{{base.code}}）</text>
+            <input class="num-input num {{amountInvalid ? 'is-invalid' : ''}}" type="digit" value="{{amount}}" placeholder="输入金额" placeholder-class="ph" bindinput="onAmountInput" />
+        </view>
+
+        <view class="field">
+            <view class="field-head">
+                <text class="label">目标汇率（1 {{base.code}} = ? {{target.code}}）</text>
+                <text class="text-btn" bindtap="onUseRate" aria-role="button">填入当前汇率</text>
+            </view>
+            <input class="num-input num {{rateInvalid ? 'is-invalid' : ''}}" type="digit" value="{{targetRate}}" placeholder="{{targetPlaceholder}}" placeholder-class="ph" bindinput="onTargetRateInput" />
+            <text class="field-error" wx:if="{{calcError}}">{{calcError}}</text>
+        </view>
+
+        <view class="result" wx:if="{{result.show}}">
+            <view class="result-row">
+                <text class="result-label">按当前汇率可得</text>
+                <text class="result-value num">{{result.now}}</text>
+            </view>
+            <view class="result-row">
+                <text class="result-label">按目标汇率可得</text>
+                <text class="result-value num">{{result.target}}</text>
+            </view>
+            <view class="verdict {{result.tone}}">
+                <text class="verdict-label">{{result.label}}</text>
+                <text class="verdict-value num">{{result.diff}}</text>
+                <text class="verdict-pct num" wx:if="{{result.pct}}">{{result.pct}}</text>
+            </view>
+        </view>
+    </view>
+
+    <!-- 工具 2：全币种换算 -->
+    <view class="panel" hidden="{{tab !== 'multi'}}">
+        <view class="multi-head">
+            <text class="hint">{{editing ? '用箭头调整顺序，点 × 移除币种。' : '在任意一行输入金额，其他币种自动换算。'}}</text>
+            <text class="text-btn" bindtap="onToggleEdit" aria-role="button">{{editing ? '完成' : '编辑'}}</text>
+        </view>
+
+        <view class="multi-list">
+            <view class="multi-item" wx:for="{{list}}" wx:key="code">
+                <text class="item-flag">{{item.flag}}</text>
+                <view class="item-cur">
+                    <text class="item-code">{{item.code}}</text>
+                    <text class="item-name">{{item.name}}</text>
+                </view>
+                <input wx:if="{{!editing}}" class="multi-input num {{item.invalid ? 'is-invalid' : ''}}" type="digit" value="{{item.value}}" placeholder="{{item.placeholder}}" placeholder-class="ph" data-code="{{item.code}}" bindinput="onMultiInput" bindblur="onMultiBlur" aria-label="{{item.name}}金额" />
+                <view wx:else class="edit-actions">
+                    <view class="mini-btn {{index === 0 ? 'is-disabled' : ''}}" data-index="{{index}}" data-dir="-1" bindtap="onMove" aria-role="button" aria-label="上移 {{item.code}}">↑</view>
+                    <view class="mini-btn {{index === list.length - 1 ? 'is-disabled' : ''}}" data-index="{{index}}" data-dir="1" bindtap="onMove" aria-role="button" aria-label="下移 {{item.code}}">↓</view>
+                    <view class="mini-btn is-danger {{list.length <= 2 ? 'is-disabled' : ''}}" data-code="{{item.code}}" bindtap="onRemove" aria-role="button" aria-label="移除 {{item.code}}">×</view>
+                </view>
+            </view>
+        </view>
+
+        <picker range="{{addLabels}}" bindchange="onAdd" disabled="{{!addLabels.length}}">
+            <view class="add-row">＋ 添加币种</view>
+        </picker>
+    </view>
+
+    <view class="colophon">汇率每天更新一次，仅供参考，实际兑换以银行或兑换机构报价为准。</view>
+</view>
