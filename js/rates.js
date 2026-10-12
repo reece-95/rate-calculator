@@ -53,7 +53,9 @@ function normalize(data) {
 }
 
 async function fetchRates() {
-    const res = await fetch(RATES_URL, { headers: { Accept: 'application/json' } });
+    // 不用浏览器的 HTTP 缓存：本地缓存已由上面的 localStorage 负责；
+    // 浏览器缓存里可能留着一份直接打开接口地址时得到、没有跨站许可头的旧响应，会被 CORS 拦下
+    const res = await fetch(RATES_URL, { cache: 'no-store', headers: { Accept: 'application/json' } });
     if (res.status === 429) throw new Error('rate-limited');
     if (!res.ok) throw new Error(`http-${res.status}`);
     return normalize(await res.json());
