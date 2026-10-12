@@ -5,98 +5,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Global Currency Hub</title>
     <meta name="description" content="汇率差（损益）计算器和多币种联动换算，支持 160 多种货币，可离线使用。">
-    <meta name="theme-color" content="#4f46e5">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h13l-3-3M20 16H7l3 3'/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#f2f4ef" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0e1613" media="(prefers-color-scheme: dark)">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%231d5a47'/%3E%3Cpath d='M9 13h13l-3.5-3.5M23 19H10l3.5 3.5' fill='none' stroke='%23f2f4ef' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script type="module" src="js/app.js"></script>
 </head>
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" hidden>
         <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></symbol>
-        <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+        <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h16M20 8l-3-3M20 8l-3 3M20 16H4M4 16l3-3M4 16l3 3"/></symbol>
         <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></symbol>
         <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     </svg>
 
-    <main class="app">
-        <header class="app-header">
-            <h1>Global Currency Hub</h1>
-            <p>汇率差计算 &amp; 多币种换算</p>
-        </header>
-
-        <div class="tabs" role="tablist" aria-label="工具">
-            <button type="button" class="tab" role="tab" id="tab-calc" aria-controls="panel-calc" aria-selected="true">汇率差计算器</button>
-            <button type="button" class="tab" role="tab" id="tab-multi" aria-controls="panel-multi" aria-selected="false" tabindex="-1">全币种转换</button>
-        </div>
-
-        <!-- 工具 1：汇率差（损益）计算器 -->
-        <section class="panel" id="panel-calc" role="tabpanel" aria-labelledby="tab-calc">
-            <div class="pair">
-                <div class="field">
-                    <label for="baseCurrency">持有币种</label>
-                    <div class="select-wrap"><select id="baseCurrency"></select></div>
-                </div>
-                <button type="button" class="icon-btn swap-btn" id="swapBtn" aria-label="互换持有币种和兑换币种" title="互换">
-                    <svg class="icon" aria-hidden="true"><use href="#i-swap"/></svg>
-                </button>
-                <div class="field">
-                    <label for="targetCurrency">兑换币种</label>
-                    <div class="select-wrap"><select id="targetCurrency"></select></div>
-                </div>
-            </div>
-
-            <div class="rate-card" aria-live="polite">
-                <p class="rate-label">当前汇率</p>
-                <p class="rate-value" id="rateValue">—</p>
-                <p class="rate-inverse" id="rateInverse"></p>
-            </div>
-
-            <div class="field">
-                <label for="calcAmount">交易金额 <span class="unit" id="amountUnit"></span></label>
-                <input type="text" id="calcAmount" inputmode="decimal" autocomplete="off" placeholder="输入金额">
-            </div>
-
-            <div class="field">
-                <label for="userTargetRate">目标汇率 <span class="unit" id="targetRateUnit"></span></label>
-                <input type="text" id="userTargetRate" inputmode="decimal" autocomplete="off" placeholder="你想锁定的汇率">
-                <p class="field-error" id="calcError" hidden></p>
-            </div>
-
-            <div class="result" id="calcResult" hidden>
-                <div class="result-row">
-                    <span>按当前汇率可得</span>
-                    <span class="num" id="resNow">—</span>
-                </div>
-                <div class="result-row">
-                    <span>按目标汇率可得</span>
-                    <span class="num" id="resTarget">—</span>
-                </div>
-                <div class="result-total" id="resDiffRow">
-                    <span id="resDiffLabel">差额</span>
-                    <span class="num" id="resDiff">—</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- 工具 2：多币种联动 -->
-        <section class="panel" id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" hidden>
-            <p class="hint">在任意一行输入金额，其他币种自动换算。拖动左侧把手可调整顺序（键盘：聚焦把手后按 ↑ ↓）。</p>
-            <ul class="multi-list" id="multiList"></ul>
-            <div class="add-row">
-                <label for="addCurrency" class="visually-hidden">添加币种</label>
-                <div class="select-wrap"><select id="addCurrency"></select></div>
-            </div>
-        </section>
-
-        <footer class="status" id="status">
-            <p id="statusText">正在获取汇率…</p>
-            <div class="status-actions">
-                <a id="attribution" href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates By Exchange Rate API</a>
+    <div class="page">
+        <header class="masthead">
+            <p class="brand">
+                <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15"/><path d="M9 13h13l-3.5-3.5M23 19H10l3.5 3.5"/></svg>
+                <span>Global Currency Hub</span>
+            </p>
+            <div class="status" id="status">
+                <p id="statusText" aria-live="polite">正在获取汇率…</p>
                 <button type="button" class="icon-btn refresh-btn" id="refreshBtn" aria-label="刷新汇率" title="刷新汇率">
                     <svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>
                 </button>
             </div>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="工具">
+            <button type="button" class="tab" role="tab" id="tab-calc" aria-controls="panel-calc" aria-selected="true">汇率差计算</button>
+            <button type="button" class="tab" role="tab" id="tab-multi" aria-controls="panel-multi" aria-selected="false" tabindex="-1">全币种换算</button>
+        </div>
+
+        <main class="workspace">
+            <!-- 工具 1：汇率差（损益）计算器 -->
+            <section class="panel panel-calc" id="panel-calc" role="tabpanel" aria-labelledby="tab-calc">
+                <h2 class="panel-title">汇率差计算</h2>
+
+                <div class="pair">
+                    <div class="picker-field">
+                        <label for="baseCurrency">持有</label>
+                        <div class="picker">
+                            <span class="picker-flag" id="baseFlag" aria-hidden="true"></span>
+                            <span class="picker-text" aria-hidden="true"><span class="picker-code" id="baseCode"></span><span class="picker-name" id="baseName"></span></span>
+                            <svg class="picker-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            <select id="baseCurrency"></select>
+                        </div>
+                    </div>
+                    <button type="button" class="icon-btn swap-btn" id="swapBtn" aria-label="互换持有币种和兑换币种" title="互换">
+                        <svg class="icon" aria-hidden="true"><use href="#i-swap"/></svg>
+                    </button>
+                    <div class="picker-field">
+                        <label for="targetCurrency">换成</label>
+                        <div class="picker">
+                            <span class="picker-flag" id="targetFlag" aria-hidden="true"></span>
+                            <span class="picker-text" aria-hidden="true"><span class="picker-code" id="targetCode"></span><span class="picker-name" id="targetName"></span></span>
+                            <svg class="picker-chevron" aria-hidden="true"><use href="#i-chevron"/></svg>
+                            <select id="targetCurrency"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="note" aria-live="polite">
+                    <canvas class="guilloche" id="guilloche" aria-hidden="true"></canvas>
+                    <p class="note-pair rate-label">1 USD =</p>
+                    <p class="note-rate"><span class="note-value" id="rateValue">—</span> <span class="note-unit" id="rateUnit"></span></p>
+                    <p class="note-inverse" id="rateInverse"></p>
+                </div>
+
+                <div class="field">
+                    <label for="calcAmount">兑换金额 <span class="unit" id="amountUnit"></span></label>
+                    <input type="text" id="calcAmount" class="num-input" inputmode="decimal" autocomplete="off" placeholder="输入金额">
+                </div>
+
+                <div class="field">
+                    <div class="field-head">
+                        <label for="userTargetRate">目标汇率 <span class="unit" id="targetRateUnit"></span></label>
+                        <button type="button" class="text-btn" id="useRateBtn">填入当前汇率</button>
+                    </div>
+                    <input type="text" id="userTargetRate" class="num-input" inputmode="decimal" autocomplete="off" placeholder="你期望的汇率">
+                    <p class="field-error" id="calcError" hidden></p>
+                </div>
+
+                <div class="result" id="calcResult" hidden>
+                    <dl class="result-rows">
+                        <div class="result-row">
+                            <dt>按当前汇率可得</dt>
+                            <dd class="num" id="resNow">—</dd>
+                        </div>
+                        <div class="result-row">
+                            <dt>按目标汇率可得</dt>
+                            <dd class="num" id="resTarget">—</dd>
+                        </div>
+                    </dl>
+                    <p class="verdict" id="resDiffRow">
+                        <span class="verdict-label" id="resDiffLabel">差额</span>
+                        <span class="verdict-value num" id="resDiff">—</span>
+                        <span class="verdict-pct num" id="resPct"></span>
+                    </p>
+                </div>
+            </section>
+
+            <!-- 工具 2：多币种联动 -->
+            <section class="panel panel-multi" id="panel-multi" role="tabpanel" aria-labelledby="tab-multi" hidden>
+                <h2 class="panel-title">全币种换算</h2>
+                <p class="hint">在任意一行输入金额，其他币种自动换算。拖动左侧把手调整顺序，键盘用户聚焦把手后按 ↑ ↓。</p>
+                <ul class="multi-list" id="multiList"></ul>
+                <div class="add-row">
+                    <svg class="icon add-icon" aria-hidden="true"><use href="#i-plus"/></svg>
+                    <label for="addCurrency" class="visually-hidden">添加币种</label>
+                    <select id="addCurrency"></select>
+                </div>
+            </section>
+        </main>
+
+        <footer class="colophon">
+            <p>汇率每天更新一次，仅供参考，实际兑换以银行或兑换机构报价为准。</p>
+            <a id="attribution" href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates By Exchange Rate API</a>
         </footer>
-    </main>
+    </div>
 </body>
 </html>

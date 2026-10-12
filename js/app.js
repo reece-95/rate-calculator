@@ -81,7 +81,7 @@ function renderSelects() {
 }
 
 function renderAddSelect() {
-    buildOptions(addSel, availableCodes(), { exclude: state.list, placeholder: '＋ 添加币种…' });
+    buildOptions(addSel, availableCodes(), { exclude: state.list, placeholder: '添加币种' });
     addSel.value = '';
 }
 
@@ -101,13 +101,24 @@ function markInvalid(input, invalid) {
     else input.removeAttribute('aria-invalid');
 }
 
+/** 币种按钮上显示的国旗、代码和中文名 */
+function renderPicker(prefix, code) {
+    $(`${prefix}Flag`).textContent = currencyFlag(code);
+    $(`${prefix}Code`).textContent = code;
+    $(`${prefix}Name`).textContent = currencyName(code);
+}
+
 function renderCalc() {
     const { base, target } = state;
     const rate = crossRate(rates(), base, target);
 
+    renderPicker('base', base);
+    renderPicker('target', target);
     document.querySelector('.rate-label').textContent = `1 ${base} =`;
-    $('rateValue').textContent = rate == null ? '—' : `${formatRate(rate)} ${target}`;
+    $('rateValue').textContent = rate == null ? '—' : formatRate(rate);
+    $('rateUnit').textContent = rate == null ? '' : target;
     $('rateInverse').textContent = rate == null ? '' : `1 ${target} = ${formatRate(1 / rate)} ${base}`;
+    $('useRateBtn').disabled = rate == null;
     $('amountUnit').textContent = `（${base}）`;
     $('targetRateUnit').textContent = `（1 ${base} = ? ${target}）`;
     targetRateInput.placeholder = rate == null ? '你想锁定的汇率' : `例如 ${formatRate(rate)}`;
@@ -144,10 +155,12 @@ function renderCalc() {
     if (isZero) {
         $('resDiffLabel').textContent = '与目标持平';
         $('resDiff').textContent = `0 ${target}`;
+        $('resPct').textContent = '';
     } else {
         const sign = diff > 0 ? '+' : '−';
         $('resDiffLabel').textContent = diff > 0 ? '现在换比目标多得' : '现在换比目标少得';
-        $('resDiff').textContent = `${sign}${diffText} ${target}（${sign}${Math.abs(pct).toFixed(2)}%）`;
+        $('resDiff').textContent = `${sign}${diffText} ${target}`;
+        $('resPct').textContent = `相差 ${Math.abs(pct).toFixed(2)}%`;
     }
     result.hidden = false;
 }
@@ -157,7 +170,18 @@ targetSel.addEventListener('change', () => { state.target = targetSel.value; ren
 amountInput.addEventListener('input', () => { state.amount = amountInput.value; renderCalc(); saveState(); });
 targetRateInput.addEventListener('input', () => { state.targetRate = targetRateInput.value; renderCalc(); saveState(); });
 
+$('useRateBtn').addEventListener('click', () => {
+    const rate = crossRate(rates(), state.base, state.target);
+    if (rate == null) return;
+    targetRateInput.value = formatRate(rate).replace(/,/g, '');
+    state.targetRate = targetRateInput.value;
+    renderCalc();
+    saveState();
+    targetRateInput.focus();
+});
+
 $('swapBtn').addEventListener('click', () => {
+    $('swapBtn').classList.toggle('is-flipped');
     [state.base, state.target] = [state.target, state.base];
     baseSel.value = state.base;
     targetSel.value = state.target;
@@ -365,18 +389,28 @@ list.addEventListener('keydown', e => {
    ========================================================================== */
 
 const tabs = [...document.querySelectorAll('[role="tab"]')];
+// 宽屏时两个工具并排显示，标签栏隐藏（见 CSS），此时面板不再是标签页
+const wide = window.matchMedia('(min-width: 960px)');
 
 function selectTab(name, { focus = false } = {}) {
     state.tab = name === 'multi' ? 'multi' : 'calc';
     for (const tab of tabs) {
         const selected = tab.id === `tab-${state.tab}`;
+        const panel = $(tab.getAttribute('aria-controls'));
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
-        $(tab.getAttribute('aria-controls')).hidden = !selected;
+        panel.hidden = !selected && !wide.matches;
+        if (wide.matches) panel.removeAttribute('role');
+        else panel.setAttribute('role', 'tabpanel');
         if (selected && focus) tab.focus();
     }
     saveState();
 }
+
+wide.addEventListener('change', () => {
+    selectTab(state.tab);
+    drawGuilloche();
+});
 
 tabs.forEach((tab, i) => {
     tab.addEventListener('click', () => selectTab(tab.id.replace('tab-', '')));
@@ -429,8 +463,8 @@ async function refresh({ force = false } = {}) {
         snapshot = next;
         if (fetched || firstData) renderAll();
         setStatus(force && !fetched
-            ? `已是最新 · 下次更新约 ${timeFormat.format(snapshot.nextUpdateAt)}`
-            : `汇率更新于 ${timeFormat.format(snapshot.updatedAt)} · 每日更新`);
+            ? `已是最新，下次更新约 ${timeFormat.format(snapshot.nextUpdateAt)}`
+            : `汇率更新于 ${timeFormat.format(snapshot.updatedAt)}`);
     } catch (err) {
         console.error('[rates]', err);
         const reason = ERROR_TEXT[err.message];
@@ -454,10 +488,62 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* ==========================================================================
+   汇率票据背后的防伪花纹（guilloche）：纯装饰，静态绘制
+   ========================================================================== */
+
+const guilloche = $('guilloche');
+
+function drawGuilloche() {
+    const ctx = guilloche.getContext('2d');
+    const { width: w, height: h } = guilloche.getBoundingClientRect();
+    if (!ctx || !w || !h) return;
+    const dpr = window.devicePixelRatio || 1;
+    guilloche.width = Math.round(w * dpr);
+    guilloche.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--note').trim() || '#1d5a47';
+    ctx.lineWidth = 0.7;
+
+    // 右侧的玫瑰花纹：一圈圈带相位差的波浪环叠在一起，形成钞票上的干涉纹理
+    const cx = w - Math.min(h * 0.55, w * 0.18);
+    const cy = h / 2;
+    const rings = 16;
+    ctx.globalAlpha = 0.22;
+    for (let i = 0; i < rings; i++) {
+        const base = h * 0.12 + i * h * 0.035;
+        ctx.beginPath();
+        for (let s = 0; s <= 360; s++) {
+            const t = (s / 360) * Math.PI * 2;
+            const r = base + h * 0.06 * Math.sin(12 * t + i * 0.45) + h * 0.025 * Math.sin(5 * t - i * 0.3);
+            const x = cx + r * Math.cos(t);
+            const y = cy + r * Math.sin(t);
+            s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // 底部的细波浪线带
+    ctx.globalAlpha = 0.14;
+    for (let i = 0; i < 7; i++) {
+        const y0 = h - 10 - i * 3.2;
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 4) {
+            const y = y0 + 2.6 * Math.sin(x / 9 + i * 0.7) + 1.4 * Math.sin(x / 23 - i);
+            x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+}
+
+if ('ResizeObserver' in window) new ResizeObserver(drawGuilloche).observe(guilloche);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawGuilloche);
+
+/* ==========================================================================
    启动：先用缓存立刻显示，再在后台检查更新
    ========================================================================== */
 
 renderAll();
 selectTab(state.tab);
-if (snapshot) setStatus(`汇率更新于 ${timeFormat.format(snapshot.updatedAt)} · 每日更新`);
+if (snapshot) setStatus(`汇率更新于 ${timeFormat.format(snapshot.updatedAt)}`);
 refresh();
