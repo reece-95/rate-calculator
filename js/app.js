@@ -389,28 +389,18 @@ list.addEventListener('keydown', e => {
    ========================================================================== */
 
 const tabs = [...document.querySelectorAll('[role="tab"]')];
-// 宽屏时两个工具并排显示，标签栏隐藏（见 CSS），此时面板不再是标签页
-const wide = window.matchMedia('(min-width: 960px)');
 
 function selectTab(name, { focus = false } = {}) {
     state.tab = name === 'multi' ? 'multi' : 'calc';
     for (const tab of tabs) {
         const selected = tab.id === `tab-${state.tab}`;
-        const panel = $(tab.getAttribute('aria-controls'));
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
-        panel.hidden = !selected && !wide.matches;
-        if (wide.matches) panel.removeAttribute('role');
-        else panel.setAttribute('role', 'tabpanel');
+        $(tab.getAttribute('aria-controls')).hidden = !selected;
         if (selected && focus) tab.focus();
     }
     saveState();
 }
-
-wide.addEventListener('change', () => {
-    selectTab(state.tab);
-    drawGuilloche();
-});
 
 tabs.forEach((tab, i) => {
     tab.addEventListener('click', () => selectTab(tab.id.replace('tab-', '')));
