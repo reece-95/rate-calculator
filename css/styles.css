@@ -3,13 +3,14 @@
  * 视觉方向：钞票与兑换柜台。纸张底色 + 油墨深绿；只有"当前汇率"这一块用
  * 钞票式的双线边框和防伪花纹（guilloche，由 JS 在 canvas 上绘制），其余保持克制。
  *
- * 布局：手机单列 + 分段标签；≥ 960px 两个工具并排，标签隐藏。
+ * 布局：单列 + 分段标签，一次只显示一个工具；电脑上居中，宽度与手机版相近。
  *
- *   ┌ brand ─────────────────── status ⟳ ┐
- *   │ [持有 ▾] ⇅ [换成 ▾]  │ 全币种换算     │
- *   │ ╔ 1 USD = 6.7003 CNY ╗│ ⋮ 🇨🇳 CNY  376 │
- *   │ 金额 / 目标汇率 / 结果 │ ⋮ 🇯🇵 JPY 8,881│
- *   └───────────────────────────────────────┘
+ *   ┌ brand ──────── status ⟳ ┐
+ *   │ [汇率差计算 | 全币种换算]  │
+ *   │ [持有 ▾]  ⇄  [换成 ▾]      │
+ *   │ ╔ 1 USD = 6.7003 CNY ╗    │
+ *   │ 金额 / 目标汇率 / 结果      │
+ *   └────────────────────────────┘
  */
 
 :root {
@@ -139,7 +140,7 @@ button, input, select { font: inherit; color: inherit; }
 
 /* --- Page frame --- */
 .page {
-    max-width: 66rem;
+    max-width: 36rem;
     margin: 0 auto;
     padding: max(1.25rem, env(safe-area-inset-top, 0px)) 1rem max(2rem, env(safe-area-inset-bottom, 0px));
     display: grid;
@@ -207,12 +208,6 @@ button, input, select { font: inherit; color: inherit; }
 .workspace { display: grid; gap: 2rem; align-items: start; }
 
 .panel { display: grid; gap: 1.25rem; min-width: 0; }
-.panel-title {
-    display: none;
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 650;
-}
 
 /* --- Currency pickers --- */
 .pair {
@@ -473,13 +468,9 @@ button, input, select { font: inherit; color: inherit; }
 }
 .colophon a { color: inherit; }
 
-/* --- Wide screens: 两个工具并排 --- */
-@media (min-width: 960px) {
-    .page { padding-inline: 2rem; gap: 2rem; padding-top: 2rem; }
-    .tabs { display: none; }
-    .workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3rem; }
-    .panel-title { display: block; }
-    .panel-multi { padding-left: 3rem; border-left: 1px solid var(--rule); }
+/* --- Wide screens: 仍然一次只显示一个工具，只是留出更多呼吸空间 --- */
+@media (min-width: 720px) {
+    .page { gap: 1.75rem; padding-top: 2.5rem; }
 }
 
 @media (max-width: 400px) {
