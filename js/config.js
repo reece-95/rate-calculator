@@ -1,16 +1,16 @@
 /*
  * 汇率数据从哪里来
  *
- * 默认：ExchangeRate-API 的免 Key 接口（每天更新一次，要求页面上保留署名链接）。
+ * 当前：自己的 Cloudflare Worker（worker/ 目录），API Key 保存在 Worker 的加密变量里。
+ * 用自己的 Key 不需要署名，所以 SHOW_ATTRIBUTION 为 false。
  *
- * 部署了 worker/ 里的中转服务之后，把 RATES_URL 改成你的 Worker 地址，
- * 例如 'https://rate-calculator-rates.<你的子域>.workers.dev'，
- * 并把 SHOW_ATTRIBUTION 改成 false（用自己的 Key 不需要署名）。
+ * 如果以后不用 Worker 了，可以改回 ExchangeRate-API 的免 Key 接口：
+ *   RATES_URL = 'https://open.er-api.com/v6/latest/USD'，SHOW_ATTRIBUTION = true（要求保留署名链接）
  *
  * 不要把 API Key 写在这里：网页代码对所有访客都是公开的。
  */
-export const RATES_URL = 'https://open.er-api.com/v6/latest/USD';
-export const SHOW_ATTRIBUTION = true;
+export const RATES_URL = 'https://rate-calculator-rates.xuanwen997.workers.dev';
+export const SHOW_ATTRIBUTION = false;
 
 /* 第一次打开时的默认设置 */
 export const DEFAULTS = {
