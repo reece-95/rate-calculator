@@ -1,6 +1,10 @@
 const { DEFAULTS, COMMON } = require('../../config.js');
 const { cachedRates, loadRates, isDue, crossRate } = require('../../utils/rates.js');
-const { currencyName, currencyFlag, formatAmount, formatRate, parseAmount } = require('../../utils/currency.js');
+const { currencyName, currencyFlag, fractionDigits, formatAmount, formatRate, parseAmount } = require('../../utils/currency.js');
+const { applyKey, displayText, toRaw } = require('../../utils/keypad.js');
+
+const RATE_DECIMALS = 6;
+const KB_DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'];
 
 const STATE_KEY = 'gch-state-v1';
 
@@ -55,8 +59,8 @@ Page({
 
         rateText: '—',
         inverseText: '',
-        amount: '',
-        targetRate: '',
+        amountText: '',
+        targetRateText: '',
         targetPlaceholder: '你期望的汇率',
         amountInvalid: false,
         rateInvalid: false,
@@ -65,7 +69,11 @@ Page({
 
         editing: false,
         list: [],
-        addLabels: []
+        addLabels: [],
+
+        // 自带数字键盘：field 是 'amount'、'rate' 或 'm:币种代码'
+        kb: { show: false, field: '', title: '', action: '完成' },
+        kbDigits: KB_DIGITS
     },
 
     /* ---------------- 生命周期 ---------------- */
@@ -88,8 +96,12 @@ Page({
             const saved = wx.getStorageSync(STATE_KEY);
             if (saved && typeof saved === 'object') Object.assign(this.state, saved);
         } catch (e) { /* 第一次打开 */ }
+        // 输入框只保存原始数字文本，旧版本存的 "1,234.50" 在这里统一转换
+        this.state.amount = toRaw(this.state.amount);
+        this.state.targetRate = toRaw(this.state.targetRate);
+        this.state.multi = { code: this.state.multi && this.state.multi.code, text: toRaw(this.state.multi && this.state.multi.text) };
 
-        this.setData({ tab: this.state.tab, amount: this.state.amount, targetRate: this.state.targetRate });
+        this.setData({ tab: this.state.tab });
         this.renderAll();
         if (this.snapshot) this.setStatus(`汇率更新于 ${formatTime(this.snapshot.updatedAt)}`);
         this.refresh();
@@ -230,11 +242,12 @@ Page({
         // 目标汇率换成反方向：1 NZD = 4.10 CNY → 1 CNY = 0.243902 NZD
         const tr = parseAmount(s.targetRate);
         if (tr) s.targetRate = formatRate(1 / tr).replace(/,/g, '');
+        // 持有币种变了，金额允许的小数位可能跟着变（例如换成日元不能有小数）
+        s.amount = this.trimDecimals(s.amount, fractionDigits(s.base));
         this.setData({
             flipped: !this.data.flipped,
             baseIndex: Math.max(0, this.codes.indexOf(s.base)),
-            targetIndex: Math.max(0, this.codes.indexOf(s.target)),
-            targetRate: s.targetRate
+            targetIndex: Math.max(0, this.codes.indexOf(s.target))
         });
         this.renderCalc();
         this.saveState();
@@ -248,9 +261,11 @@ Page({
         const amount = parseAmount(s.amount);
         const targetRate = parseAmount(s.targetRate);
         const amountInvalid = Number.isNaN(amount);
-        const rateInvalid = Number.isNaN(targetRate) || targetRate === 0;
+        const rateInvalid = Number.isNaN(targetRate);
 
         const patch = {
+            amountText: displayText(s.amount),
+            targetRateText: displayText(s.targetRate),
             base: info(s.base),
             target: info(s.target),
             rateText: rate == null ? '—' : formatRate(rate),
@@ -262,7 +277,8 @@ Page({
             result: { show: false }
         };
 
-        if (rate != null && amount != null && targetRate != null && !amountInvalid && !rateInvalid) {
+        // 输入到一半（例如 "0."）时不算错，只是先不显示结果
+        if (rate != null && amount > 0 && targetRate > 0 && !amountInvalid && !rateInvalid) {
             // 汇率始终用完整精度计算，显示时才四舍五入
             const nowTotal = amount * rate;
             const targetTotal = amount * targetRate;
@@ -283,23 +299,10 @@ Page({
         this.setData(patch);
     },
 
-    onAmountInput(e) {
-        this.state.amount = e.detail.value;
-        this.renderCalc();
-        this.saveState();
-    },
-
-    onTargetRateInput(e) {
-        this.state.targetRate = e.detail.value;
-        this.renderCalc();
-        this.saveState();
-    },
-
     onUseRate() {
         const rate = crossRate(this.rates(), this.state.base, this.state.target);
         if (rate == null) return;
         this.state.targetRate = formatRate(rate).replace(/,/g, '');
-        this.setData({ targetRate: this.state.targetRate });
         this.renderCalc();
         this.saveState();
     },
@@ -322,16 +325,16 @@ Page({
         const srcAmount = src ? parseAmount(s.multi.text) : null;
         const valid = srcAmount != null && !Number.isNaN(srcAmount);
 
+        const activeCode = this.data.kb.field.indexOf('m:') === 0 ? this.data.kb.field.slice(2) : null;
         const list = s.list.map(code => {
             const hint = crossRate(r, first, code);
             const item = Object.assign(info(code), {
                 placeholder: hint == null ? '' : formatAmount(100 * hint, code),
                 value: '',
-                invalid: false
+                active: code === activeCode
             });
             if (code === src) {
-                item.value = s.multi.text;
-                item.invalid = Number.isNaN(srcAmount);
+                item.value = displayText(s.multi.text);
             } else if (valid) {
                 const rate = crossRate(r, src, code);
                 item.value = rate == null ? '' : formatAmount(srcAmount * rate, code);
@@ -341,25 +344,8 @@ Page({
         this.setData({ list });
     },
 
-    onMultiInput(e) {
-        this.state.multi = { code: e.currentTarget.dataset.code, text: e.detail.value };
-        this.updateList();
-        this.saveState();
-    },
-
-    // 离开输入框时把数字整理成标准格式，例如 1234.5 → 1,234.50
-    onMultiBlur(e) {
-        const code = e.currentTarget.dataset.code;
-        if (code !== this.state.multi.code) return;
-        const amount = parseAmount(e.detail.value);
-        if (amount != null && !Number.isNaN(amount)) {
-            this.state.multi.text = formatAmount(amount, code);
-            this.updateList();
-            this.saveState();
-        }
-    },
-
     onToggleEdit() {
+        this.closeKeypad();
         this.setData({ editing: !this.data.editing });
     },
 
@@ -400,6 +386,7 @@ Page({
         const tab = e.currentTarget.dataset.tab === 'multi' ? 'multi' : 'calc';
         if (tab === this.data.tab) return;
         this.state.tab = tab;
+        this.closeKeypad();
         this.setData({ tab, editing: false }, () => {
             if (tab === 'calc') this.drawGuilloche();
         });
@@ -408,6 +395,100 @@ Page({
 
     onRefresh() {
         this.refresh({ force: true });
+    },
+
+    /* ---------------- 自带数字键盘 ---------------- */
+
+    /** 去掉超出允许位数的小数，例如换成日元时 "12.5" → "12" */
+    trimDecimals(text, maxDecimals) {
+        const dot = text.indexOf('.');
+        if (dot === -1) return text;
+        return maxDecimals > 0 ? text.slice(0, dot + 1 + maxDecimals) : text.slice(0, dot);
+    },
+
+    /** 当前字段的原始文本、允许的小数位和标题 */
+    fieldInfo(field) {
+        const s = this.state;
+        if (field === 'amount') return { text: s.amount, decimals: fractionDigits(s.base), title: `兑换金额 · ${s.base}` };
+        if (field === 'rate') return { text: s.targetRate, decimals: RATE_DECIMALS, title: `目标汇率 · 1 ${s.base} = ? ${s.target}` };
+        const code = field.slice(2);
+        return { text: s.multi.code === code ? s.multi.text : '', decimals: fractionDigits(code), title: `${code} ${currencyName(code)}` };
+    },
+
+    openField(field) {
+        const fi = this.fieldInfo(field);
+        // 全币种页：点另一行时，从这一行重新开始输入
+        if (field.indexOf('m:') === 0 && this.state.multi.code !== field.slice(2)) {
+            this.state.multi = { code: field.slice(2), text: '' };
+        }
+        this.setData({
+            kb: { show: true, field, title: fi.title, action: field === 'amount' ? '下一项' : '完成' }
+        }, () => {
+            if (field.indexOf('m:') === 0) this.updateList();
+            // 把正在输入的框滚到屏幕上方，让下面的结果露在键盘上面
+            const selector = field === 'amount' ? '#f-amount' : field === 'rate' ? '#f-rate' : `#m-${field.slice(2)}`;
+            wx.pageScrollTo({ selector, offsetTop: -16, duration: 200 });
+        });
+    },
+
+    closeKeypad() {
+        if (!this.data.kb.show) return;
+        const field = this.data.kb.field;
+        // 全币种页：收起时把金额补齐小数位，例如 1234.5 → 1234.50
+        if (field.indexOf('m:') === 0 && this.state.multi.code === field.slice(2)) {
+            const amount = parseAmount(this.state.multi.text);
+            if (amount != null && !Number.isNaN(amount)) {
+                this.state.multi.text = formatAmount(amount, field.slice(2)).replace(/,/g, '');
+            }
+        }
+        this.setData({ kb: Object.assign({}, this.data.kb, { show: false, field: '' }) }, () => {
+            this.updateList();
+            this.saveState();
+        });
+    },
+
+    onFieldTap(e) {
+        const ds = e.currentTarget.dataset;
+        const field = ds.field || `m:${ds.code}`;
+        if (field === this.data.kb.field) return;
+        this.openField(field);
+    },
+
+    onKey(e) {
+        const field = this.data.kb.field;
+        if (!field) return;
+        const fi = this.fieldInfo(field);
+        const next = applyKey(fi.text, e.currentTarget.dataset.key, fi.decimals);
+        try { wx.vibrateShort({ type: 'light' }); } catch (err) { /* 部分机型不支持 */ }
+        if (next === fi.text) return;
+
+        if (field === 'amount') {
+            this.state.amount = next;
+            this.renderCalc();
+        } else if (field === 'rate') {
+            this.state.targetRate = next;
+            this.renderCalc();
+        } else {
+            this.state.multi = { code: field.slice(2), text: next };
+            this.updateList();
+        }
+        this.saveState();
+    },
+
+    onKbAction() {
+        if (this.data.kb.field === 'amount') this.openField('rate');
+        else this.closeKeypad();
+    },
+
+    onKbHide() {
+        this.closeKeypad();
+    },
+
+    onKbNoop() {},
+
+    // 点页面空白处也收起键盘
+    onBlankTap() {
+        this.closeKeypad();
     },
 
     /* ---------------- 汇率票据背后的防伪花纹 ---------------- */

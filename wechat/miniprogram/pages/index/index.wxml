@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page {{kb.show ? 'has-kb' : ''}}" bindtap="onBlankTap">
     <!-- 更新时间 + 刷新 -->
     <view class="status {{statusError ? 'is-error' : ''}}">
         <text class="status-text">{{statusText}}</text>
@@ -64,15 +64,23 @@
 
         <view class="field">
             <text class="label">兑换金额（{{base.code}}）</text>
-            <input class="num-input num {{amountInvalid ? 'is-invalid' : ''}}" type="digit" value="{{amount}}" placeholder="输入金额" placeholder-class="ph" bindinput="onAmountInput" />
+            <view id="f-amount" class="num-input num {{kb.field === 'amount' ? 'is-active' : ''}}" data-field="amount" catchtap="onFieldTap" aria-role="textbox" aria-label="兑换金额">
+                <text wx:if="{{amountText}}">{{amountText}}</text>
+                <text wx:else class="ph">输入金额</text>
+                <view class="caret" wx:if="{{kb.field === 'amount'}}"></view>
+            </view>
         </view>
 
         <view class="field">
             <view class="field-head">
                 <text class="label">目标汇率（1 {{base.code}} = ? {{target.code}}）</text>
-                <text class="text-btn" bindtap="onUseRate" aria-role="button">填入当前汇率</text>
+                <text class="text-btn" catchtap="onUseRate" aria-role="button">填入当前汇率</text>
             </view>
-            <input class="num-input num {{rateInvalid ? 'is-invalid' : ''}}" type="digit" value="{{targetRate}}" placeholder="{{targetPlaceholder}}" placeholder-class="ph" bindinput="onTargetRateInput" />
+            <view id="f-rate" class="num-input num {{rateInvalid ? 'is-invalid' : ''}} {{kb.field === 'rate' ? 'is-active' : ''}}" data-field="rate" catchtap="onFieldTap" aria-role="textbox" aria-label="目标汇率">
+                <text wx:if="{{targetRateText}}">{{targetRateText}}</text>
+                <text wx:else class="ph">{{targetPlaceholder}}</text>
+                <view class="caret" wx:if="{{kb.field === 'rate'}}"></view>
+            </view>
             <text class="field-error" wx:if="{{calcError}}">{{calcError}}</text>
         </view>
 
@@ -101,13 +109,17 @@
         </view>
 
         <view class="multi-list">
-            <view class="multi-item" wx:for="{{list}}" wx:key="code">
+            <view class="multi-item {{item.active ? 'is-active' : ''}}" id="m-{{item.code}}" wx:for="{{list}}" wx:key="code">
                 <text class="item-flag">{{item.flag}}</text>
                 <view class="item-cur">
                     <text class="item-code">{{item.code}}</text>
                     <text class="item-name">{{item.name}}</text>
                 </view>
-                <input wx:if="{{!editing}}" class="multi-input num {{item.invalid ? 'is-invalid' : ''}}" type="digit" value="{{item.value}}" placeholder="{{item.placeholder}}" placeholder-class="ph" data-code="{{item.code}}" bindinput="onMultiInput" bindblur="onMultiBlur" aria-label="{{item.name}}金额" />
+                <view wx:if="{{!editing}}" class="multi-input num {{item.active ? 'is-active' : ''}}" data-code="{{item.code}}" catchtap="onFieldTap" aria-role="textbox" aria-label="{{item.name}}金额">
+                    <text wx:if="{{item.value}}">{{item.value}}</text>
+                    <text wx:else class="ph">{{item.placeholder}}</text>
+                    <view class="caret" wx:if="{{item.active}}"></view>
+                </view>
                 <view wx:else class="edit-actions">
                     <view class="mini-btn {{index === 0 ? 'is-disabled' : ''}}" data-index="{{index}}" data-dir="-1" bindtap="onMove" aria-role="button" aria-label="上移 {{item.code}}">↑</view>
                     <view class="mini-btn {{index === list.length - 1 ? 'is-disabled' : ''}}" data-index="{{index}}" data-dir="1" bindtap="onMove" aria-role="button" aria-label="下移 {{item.code}}">↓</view>
@@ -122,4 +134,22 @@
     </view>
 
     <view class="colophon">汇率为综合汇率，来自公开信息，仅供参考，实际兑换以银行或兑换机构报价为准。</view>
+</view>
+
+<!-- 自带数字键盘：不弹系统键盘，"下一项"直接跳到目标汇率，"完成"收起 -->
+<view class="kb {{kb.show ? 'is-open' : ''}}" catchtap="onKbNoop" aria-hidden="{{!kb.show}}">
+    <view class="kb-head">
+        <text class="kb-title">{{kb.title}}</text>
+        <text class="kb-hide" catchtap="onKbHide" aria-role="button">收起</text>
+    </view>
+    <view class="kb-body">
+        <view class="kb-digits">
+            <view class="kb-key" hover-class="is-pressed" hover-stay-time="60" wx:for="{{kbDigits}}" wx:key="*this" data-key="{{item}}" catchtap="onKey" aria-role="button" aria-label="{{item === '.' ? '小数点' : item}}">{{item}}</view>
+            <view class="kb-key kb-key-fn" hover-class="is-pressed" hover-stay-time="60" data-key="clear" catchtap="onKey" aria-role="button">清空</view>
+        </view>
+        <view class="kb-side">
+            <view class="kb-key kb-key-fn" hover-class="is-pressed" hover-stay-time="60" data-key="del" catchtap="onKey" aria-role="button" aria-label="删除">⌫</view>
+            <view class="kb-key kb-action" hover-class="is-pressed" hover-stay-time="60" catchtap="onKbAction" aria-role="button">{{kb.action}}</view>
+        </view>
+    </view>
 </view>
