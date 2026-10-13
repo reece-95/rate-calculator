@@ -121,5 +121,5 @@
         </picker>
     </view>
 
-    <view class="colophon">汇率每天更新一次，仅供参考，实际兑换以银行或兑换机构报价为准。</view>
+    <view class="colophon">汇率为综合汇率，来自公开信息，仅供参考，实际兑换以银行或兑换机构报价为准。</view>
 </view>

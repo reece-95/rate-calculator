@@ -32,9 +32,10 @@ function formatTime(ms) {
 }
 
 const ERROR_TEXT = {
-    'missing-key': '汇率服务还没有配置好',
-    'cloud-error': '暂时连不上汇率服务',
-    'quota-reached': '本月汇率请求次数已用完',
+    'network-error': '网络连接失败',
+    'quota-reached': '今天的汇率查询次数已用完',
+    'rate-limited': '请求太频繁',
+    'maintenance': '汇率服务维护中',
     'invalid-key': '汇率服务的 Key 无效'
 };
 
@@ -164,7 +165,7 @@ Page({
             this.snapshot = snapshot;
             if (fetched || first) this.renderAll();
             this.setStatus(force && !fetched
-                ? `已是最新，下次更新约 ${formatTime(snapshot.nextUpdateAt)}`
+                ? `刚刚已更新过，1 小时后可再刷新`
                 : `汇率更新于 ${formatTime(snapshot.updatedAt)}`);
         }).catch(err => {
             console.error('[rates]', err);
