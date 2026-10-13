@@ -45,3 +45,7 @@ Key 保存在 Cloudflare 的加密变量里，网页只请求 Worker。Worker �
    export const RATES_URL = 'https://rate-calculator-rates.xxx.workers.dev';
    export const SHOW_ATTRIBUTION = false;
    ```
+
+## 微信小程序版
+
+`wechat/` 目录是功能相同的微信小程序，用微信云开发的云函数获取汇率。导入、部署和上架步骤见 [wechat/README.md](wechat/README.md)。

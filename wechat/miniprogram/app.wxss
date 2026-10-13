@@ -1,0 +1,46 @@
+/* 与网页版相同的视觉方向：证券纸底色 + 钞票油墨绿 */
+page {
+    --paper: #f2f4ef;
+    --surface: #fbfcf9;
+    --ink: #13221c;
+    --ink-soft: #56645d;
+    --rule: #d3dad3;
+    --note: #1d5a47;
+    --note-tint: #e3eee7;
+    --note-line: rgba(29, 90, 71, 0.35);
+    --on-note: #f2f4ef;
+    --gain: #1e7a4c;
+    --gain-tint: #e2f0e7;
+    --loss: #b3412e;
+    --loss-tint: #f6e6e2;
+    --track: #e2e7e1;
+
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    font-size: 30rpx;
+    line-height: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+    page {
+        --paper: #0e1613;
+        --surface: #15201b;
+        --ink: #e4ebe6;
+        --ink-soft: #9aa9a1;
+        --rule: #2a3a33;
+        --note: #86c9ab;
+        --note-tint: #172b23;
+        --note-line: rgba(134, 201, 171, 0.35);
+        --on-note: #0e1613;
+        --gain: #5cc892;
+        --gain-tint: #18302a;
+        --loss: #f08a75;
+        --loss-tint: #35211d;
+        --track: #1d2a25;
+    }
+}
+
+.num {
+    font-variant-numeric: tabular-nums;
+}
