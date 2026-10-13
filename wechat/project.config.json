@@ -3,7 +3,7 @@
   "miniprogramRoot": "miniprogram/",
   "cloudfunctionRoot": "cloudfunctions/",
   "compileType": "miniprogram",
-  "appid": "touristappid",
+  "appid": "wx8c2b0fc530392159",
   "projectname": "rate-calculator",
   "setting": {
     "urlCheck": true,
